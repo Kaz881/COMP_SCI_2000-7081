@@ -1,0 +1,16 @@
+CHIP RAM8 {
+    IN in[16], load, address[3];
+    OUT out[16];
+
+    PARTS:
+    DMux8Way(in = load, sel = address, a = outa, b = outb, c = outc, d = outd, e = oute, f = outf, g = outg, h = outh);
+    Register(in = in, load = outa, out = ina);
+    Register(in = in, load = outb, out = inb);
+    Register(in = in, load = outc, out = inc);
+    Register(in = in, load = outd, out = ind);
+    Register(in = in, load = oute, out = ine);
+    Register(in = in, load = outf, out = inf);
+    Register(in = in, load = outg, out = ing);
+    Register(in = in, load = outh, out = inh);
+    Mux8Way16(a = ina, b = inb, c = inc, d = ind, e = ine, f = inf, g = ing, h = inh, sel = address, out = out);
+}

@@ -1,0 +1,59 @@
+CHIP CPU {
+
+    IN  inM[16],         // M value input  (M = contents of RAM[A])
+        instruction[16], // Instruction for execution
+        reset;           // Signals whether to re-start the current
+                         // program (reset==1) or continue executing
+                         // the current program (reset==0).
+
+    OUT outM[16],        // M value output
+        writeM,          // Write to M?
+        addressM[15],    // Address in data memory (of M)
+        pc[15];          // address of next instruction
+
+
+    PARTS:
+
+    Not(in = instruction[15], out = notOp);
+    Mux16(a = aluoutput, b = instruction, sel = notOp, out = mux1out);
+
+    Or(a = notOp, b = instruction[5], out = writeA);
+    ARegister(in = mux1out, load = writeA,
+      out = outAregister, out[0..14] = addressM);
+
+    And(a = instruction[15], b = instruction[12], out = switchAM);
+    Mux16(a = outAregister, b = inM, sel = switchAM, out = mux2out);
+
+    And(a = instruction[15], b = instruction[4], out = writeD);
+    DRegister(in = aluoutput, load = writeD, out = outDregister);
+
+    ALU(x = outDregister, y = mux2out,
+      zx = instruction[11],
+      nx = instruction[10],
+      zy = instruction[9],
+      ny = instruction[8],
+      f  = instruction[7],
+      no = instruction[6],
+      out = aluoutput, out = outM,
+      zr = aluzr, ng = alung);
+
+    And(a = instruction[15], b = instruction[3], out = writeM);
+
+    Not(in = aluzr, out = alunzr);
+    Not(in = alung, out = alupos);
+    And(a = alunzr, b = alupos, out = posnzr);
+
+    And(a = instruction[15], b = instruction[2], out = jlt);
+    And(a = instruction[15], b = instruction[1], out = jeq);
+    And(a = instruction[15], b = instruction[0], out = jgt);
+
+    And(a = jlt, b = alung, out = and1);
+    And(a = jeq, b = aluzr, out = and2);
+    And(a = jgt, b = posnzr, out = and3);
+
+    Or(a = and1, b = and2, out = and1orand2);
+    Or(a = and1orand2, b = and3, out = finalOr);
+
+    PC(in = outAregister, load = finalOr, inc = true,
+      reset = reset, out[0..14] = pc);
+}
